@@ -1,0 +1,36 @@
+---
+#This is a yaml file, so do not erase the 3 dashes above
+
+#network_name is the name of your network
+network_name: ExampleNet
+
+#network_hostname is what you want to show users the address of the website to be, it is NOT used as the bind address
+network_hostname: irc.example.org
+
+#network_website is the URL to your network's website
+network_website: http://example.org
+
+#The following section details the credentials of the opers
+opers:
+
+#username is just the nick of the oper
+  - username: exampleuser1
+
+#sha512password is the hex format of the output of the password put through the sha512 hashing algorithm
+#You can also use the /mkpasswd command while connected to the IRCd to generate it.  The syntax is /mkpasswd <password>
+#The following hash used an input of examplepassword
+    sha512password: "0381616B60ADBAADA218F8A44D53D00523DD7E28AB0C7683B1BE247C30FDB41A143B5E0D8F1769648C6A6016647AAB6EC6C681A87A7974B936FECBF879A264B2"
+
+#operlevel is the number representing the permissions of the oper.
+#5 is global oper, 1 is a registered user (If you use services), and 0 means anybody.
+#2, 3, and 4 are yet to be determined, so do not use them yet
+    operlevel: 5
+ 
+ 
+  - username: exampleuser2
+    sha512password: "0066894EB6AA9976800F214681D8BEA5803F5B44A6364DB2A3C7AA5E72BFCF9FA90E1811C343C50E3D893F31AAA6A1E1BD61F9DDE15B32FCC9043C211935B938"
+    operlevel: 5
+
+#The following are paths to the certificate and key files for ssl
+certfile: cert.pem
+keyfile: key.pem

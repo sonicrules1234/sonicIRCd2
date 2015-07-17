@@ -1,9 +1,20 @@
-import logging, imp, socket, ssl, thread, traceback, select, time, fnmatch, shelve, hashlib, random, os, sys, json, glob
+import yaml, logging, imp, socket, ssl, thread, traceback, select, time, fnmatch, shelve, hashlib, random, os, sys, json, glob, os.path
 global waitingfordata
 waitingfordata = False
 global sonicinst
-
+configfileobj = open("config.yaml", "r")
+configdict = yaml.load(configfileobj)
+configfileobj.close()
+motdfileobj = open("motd.txt", "r")
+motddata = motdfileobj.read()
+motdfileobj.close()
+configdict["motd"] = motddata
+certfile = configdict["certfile"][:]
+keyfile = configdict["keyfile"][:]
+del configdict["certfile"]
+del configdict["keyfile"]
 #sonicinst = sonicIRCd2()
+configdict["debug"] = True
 class sonicIRCd2() :
     def __init__(self, network_name, network_hostname, network_website, opers, motd, debug) :
         self.connectionlist = []
@@ -17,13 +28,16 @@ class sonicIRCd2() :
         self.highestuid = "0"
         self.essentials = {}
         self.plugins = {}
+        self.timedevents = {} 
         self.network_name = network_name
         self.network_hostname = network_hostname
         self.network_website = network_website
         self.opers = opers
         self.debug = debug
         self.motd = motd
+        self.count = 0
         self.hookstartup()
+        thread.start_new_thread(counter, (self,))
     def nextUID(self, uidType="number") :
         if uidType == "number" :
             if len(self.availableUIDs) > 0 :
@@ -38,7 +52,7 @@ class sonicIRCd2() :
     def onConnect(self, connection, address, encryption) :
         uid = self.nextUID()
         self.connectionlist.append(connection)
-        self.infoByUID[uid] = {"oper":False, "operlevel":0, "needtohandle":[],"uid":uid, "channels":{}, "status":["connected"], "connection":connection, "address":socket.gethostbyaddr(address[0])[0], "conaddress":address, "ip":address[0], "ssl":encryption, "buffer":"", "level":0}
+        self.infoByUID[uid] = {"oper":False, "operlevel":0, "uid":uid, "channels":{}, "status":["connected"], "connection":connection, "address":socket.gethostbyaddr(address[0])[0], "conaddress":address, "ip":address[0], "ssl":encryption, "buffer":"", "level":0}
         self.connection2UID[connection] = uid
     def connectionlost(self, connection) :
         userinfo = self.infoByConnection(connection)
@@ -217,7 +231,7 @@ def regserv() :
 
 
 
-def sslserv() :
+def sslserv(certfile, keyfile) :
     global waitingfordata
     global sonicinst
     try :
@@ -229,7 +243,7 @@ def sslserv() :
         #    contextobject.use_certificate_file(conf.certfile)
         #    contextobject.use_privatekey_file(conf.keyfile)
         #    s = OpenSSL.SSL.Connection(contextobject, s)
-        s = ssl.wrap_socket(s, certfile=conf.certfile, keyfile=conf.keyfile)
+        s = ssl.wrap_socket(s, certfile=certfile, keyfile=keyfile)
         s.bind(('', 6697))
         s.listen(1)
     except: traceback.print_exc()
@@ -249,5 +263,15 @@ def sslserv() :
             break
 
     s.close()
-sonicinst = sonicIRCd2("SonicNet", "root-svr.net", "http://google.com", {}, "MOTD Placeholder", True)
+def counter(sonicinstance) :
+    while True :
+        if sonicinstance.timedevents.has_key(str(sonicinstance.count)) :
+            actions = sonicinstance[str(sonicinstance.count)]
+            for action in actions.keys() :
+                thread.start_new_thread(action["function"], action["args"])
+        time.sleep(1)
+        sonicinstance.count += 1
+sonicinst = sonicIRCd2(**configdict)
+if os.path.exists(certfile) and os.path.exists(keyfile) :
+    thread.start_new_thread(sslserv, (certfile, keyfile))
 regserv()
