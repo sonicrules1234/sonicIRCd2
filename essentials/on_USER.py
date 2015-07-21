@@ -27,3 +27,4 @@ def serve(sonic, uid) :
     for motdline in sonic.motd.split("\n") :
         sonic.msg_send(userinfo["connection"], "372 %s :- %s" % (userinfo["nick"], motdline.replace("\r", "")))
     sonic.msg_send(userinfo["connection"], "376 %s :End of message of the day." % (userinfo["nick"]))
+    sonic.schedulePing(uid)

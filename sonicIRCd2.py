@@ -107,7 +107,7 @@ class sonicIRCd2() :
     def onConnect(self, connection, address, encryption) :
         uid = self.uidNext(self.highestuid, 1)
         self.connectionlist.append(connection)
-        self.infoByUID[uid] = {"oper":False, "operlevel":0, "uid":uid, "channels":{}, "status":["connected"], "connection":connection, "address":socket.gethostbyaddr(address[0])[0], "conaddress":address, "ip":address[0], "ssl":encryption, "buffer":"", "level":0}
+        self.infoByUID[uid] = {"pinginfo":{}, "pingwaiting":False, "oper":False, "operlevel":0, "uid":uid, "channels":{}, "status":["connected"], "connection":connection, "address":socket.gethostbyaddr(address[0])[0], "conaddress":address, "ip":address[0], "ssl":encryption, "buffer":"", "level":0}
         self.connection2UID[connection] = uid
     def connectionlost(self, connection, reason="Connection reset by peer.", quithandled=False, thiserror=None) :
         if thiserror :
@@ -214,6 +214,13 @@ class sonicIRCd2() :
         for filepath in glob.glob("plugins" + os.sep + "*.py") :
             plugin = imp.load_source(filepath.split(os.sep)[-1].replace(".py", ""), filepath)
             plugin.startup(self.addPluginHook)
+    def schedulePing(self, uid) :
+        self.consend(userinfo["connection"], "PING :%s\r\n" % (self.network_hostname))
+        nexttime = self.count + 120
+        nexttimestr = str(nexttime)
+        if not self.timedevents.has_key(nexttimestr) :
+            self.timedevents[nexttimestr] = {}
+        self.timedevents[nexttimestr]["WAITPONG" + uid] = {"function":self.connectionlost, "args":(self.infoByUID[uid]["connection"], "Ping timeout")}
     def addEssentialsHook(self, name, function, minlevel) :
         if not self.essentials.has_key(name.upper) :
             self.essentials[name.upper()] = []
@@ -333,7 +340,7 @@ def counter(sonicinstance) :
         if sonicinstance.timedevents.has_key(str(sonicinstance.count)) :
             actions = sonicinstance[str(sonicinstance.count)]
             for action in actions.keys() :
-                thread.start_new_thread(action["function"], action["args"])
+                thread.start_new_thread(actions[action]["function"], actions[action]["args"])
         time.sleep(1)
         sonicinstance.count += 1
 sonicinst = sonicIRCd2(**configdict)
