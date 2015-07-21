@@ -16,7 +16,9 @@ del configdict["keyfile"]
 #sonicinst = sonicIRCd2()
 configdict["debug"] = True
 class sonicIRCd2() :
-    def __init__(self, network_name, network_hostname, network_website, opers, motd, debug) :
+    def __init__(self, network_name, network_hostname, network_website, opers, motd, SID, debug) :
+        self.alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        self.alphanumeric = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.connectionlist = []
         self.creationtime = time.strftime("%x %X")
         self.infoByUID = {}
@@ -25,7 +27,7 @@ class sonicIRCd2() :
         self.channelinfo = {}
         self.connection2UID = {}
         self.availableUIDs = []
-        self.highestuid = "0"
+        self.highestuid = "A00000"
         self.essentials = {}
         self.plugins = {}
         self.timedevents = {} 
@@ -36,39 +38,100 @@ class sonicIRCd2() :
         self.debug = debug
         self.motd = motd
         self.count = 0
+        self.sid = SID.upper()
         self.hookstartup()
         thread.start_new_thread(counter, (self,))
-    def nextUID(self, uidType="number") :
-        if uidType == "number" :
-            if len(self.availableUIDs) > 0 :
-                return self.availableUIDs.pop()
-            else :
-                self.highestuid = str(int(self.highestuid) + 1) 
-                return self.highestuid
+
+
+    def nextUIDCharDown(self, ch, digit, origuid, newuid, nextup) :
+        if digit in range(5) :
+            chars = self.alphanumeric
+        else :
+            chars = self.alpha
+        if digit == 0 :
+            nextup = 1
+        charslen = len(chars)
+        chindex = chars.index(ch)
+        if chindex - nextup <= 0 :
+            newuid.append(chars[charslen - 1])
+            nextup = 1
+        else :
+            newuid.append(chars[chindex - nextup])
+            nextup = 0
+        if digit == 5 :
+            return newuid
+        digit += 1
+        return self.nextUIDCharDown(origuid[digit], digit, origuid, newuid, nextup)
+
+    def coloncheck(self, words) :
+        if words.startswith(":") :
+            return words[1:]
+        else :
+            return words
+
+    def nextUIDCharUp(self, ch, digit, origuid, newuid, nextup) :
+        if digit in range(5) :
+            chars = self.alphanumeric
+        else :
+            chars = self.alpha
+        if digit == 0 :
+            nextup = 1
+        charslen = len(chars)
+        chindex = chars.index(ch)
+        if chindex + nextup >= charslen :
+            newuid.append(chars[0])
+            nextup = 1
+        else :
+            newuid.append(chars[chindex + nextup])
+            nextup = 0
+        if digit == 5 :
+            return newuid
+        digit += 1
+        return self.nextUIDCharUp(origuid[digit], digit, origuid, newuid, nextup)
+            
+                
+    def uidNext(self, uid, prevnext) :
+        uidlist = list(uid)
+        uidlist.reverse()
+        if prevnext == 1 :
+            newuid = self.nextUIDCharUp(uidlist[0], 0, uidlist, [], 0)
+        elif prevnext == -1 :
+            newuid = self.nextUIDCharDown(uidlist[0], 0, uidlist, [], 0)
+        newuid.reverse()
+        return "".join(newuid)
+
     def infoByNick(self, nick) :
         return self.infoByUID[self.nick2UID[nick]]
     def infoByConnection(self, connection) :
         return self.infoByUID[self.connection2UID[connection]]
     def onConnect(self, connection, address, encryption) :
-        uid = self.nextUID()
+        uid = self.uidNext(self.highestuid, 1)
         self.connectionlist.append(connection)
         self.infoByUID[uid] = {"oper":False, "operlevel":0, "uid":uid, "channels":{}, "status":["connected"], "connection":connection, "address":socket.gethostbyaddr(address[0])[0], "conaddress":address, "ip":address[0], "ssl":encryption, "buffer":"", "level":0}
         self.connection2UID[connection] = uid
-    def connectionlost(self, connection) :
+    def connectionlost(self, connection, reason="Connection reset by peer.", quithandled=False, thiserror=None) :
+        if thiserror :
+            if isinstance(thiserror, tuple) :
+                reason = thiserror[1]
+            elif isinstance(thiserror, str) :
+                reason = thiserror
+            print reason
         userinfo = self.infoByConnection(connection)
         uid = userinfo["uid"][:]
         if "user" in userinfo["status"] :
             for channel in userinfo["channels"].keys() :
-                #handling of quit messages should already be done
+                if not quithandled :
+                    self.distribute(uid, 'QUIT :%s' % (reason), "all")
                 self.channelinfo[channel]["users"].remove(uid)
             del self.nick2UID[userinfo["nick"]]
         del self.connection2UID[connection]
         del self.infoByUID[uid]
         self.connectionlist.remove(connection)
         if uid != self.highestuid :
-            self.avaiableuids.append(uid)
+            self.availableUIDs.append(uid)
         else :
-            self.highestuid = str(int(self.highestuid) - 1)
+            while self.highestuid not in self.availableuids :
+                self.highestuid = self.uidNext(self.highestuid, -1)
         connection.close()
     def validnick(self, nick) :
         lowerchars = "abcdefghijklmnopqrstuvwxyz1234567890[]'`|-_"
@@ -176,17 +239,19 @@ def waitfordata(sonicinstance) :
                 for userconnection in tempconlist :
                     try :
                         connections = select.select([userconnection], [], [], 0)
-                    except :
+                    except socket.error as i :
                         try :
-                            sonicinstance.connectionlost(connection)
+                            sonicinstance.connectionlost(connection, socketerror=i)
                         except :
                             traceback.print_exc()
             if noerror :
                 for connection in connections[0] :
                     try :
                         data = connection.recv(4096)
-                    except :
-                        data = ""
+#                    except :
+#                        traceback.print_exc()
+                    except socket.error as i :
+                        sonicinstance.connectionlost(connection, socketerror=i)
                     if data != "" :
                         try :
                             sonicinstance.parseData(connection, data)

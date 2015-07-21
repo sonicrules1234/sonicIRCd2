@@ -34,3 +34,6 @@ opers:
 #The following are paths to the certificate and key files for ssl
 certfile: cert.pem
 keyfile: key.pem
+
+#SID is the unique identifier for your server on the irc network
+SID: "1EX"
