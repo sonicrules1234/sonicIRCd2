@@ -9,9 +9,9 @@ def main(sonic, line, uid) :
         desirednick = info["words"][1]
     result = sonic.validnick(desirednick)
     if result == "INVALID" :
-        self.msg_send(userinfo["connection"], "432 %s :Erroneous nickname" % (desirednick))
+        sonic.msg_send(userinfo["connection"], "432 %s :Erroneous nickname" % (desirednick))
     elif result == "TAKEN" :
-        self.msg_send(userinfo["connection"], "433 %s :Nick already in use" % (desirednick))
+        sonic.msg_send(userinfo["connection"], "433 %s :Nick already in use" % (desirednick))
     else :
         if userinfo.has_key("nick") and "user" in userinfo["status"] :
             #changing nick
