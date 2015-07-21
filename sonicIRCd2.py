@@ -107,7 +107,7 @@ class sonicIRCd2() :
     def onConnect(self, connection, address, encryption) :
         uid = self.uidNext(self.highestuid, 1)
         self.connectionlist.append(connection)
-        self.infoByUID[uid] = {"pinginfo":{}, "pingwaiting":False, "oper":False, "operlevel":0, "uid":uid, "channels":{}, "status":["connected"], "connection":connection, "address":socket.gethostbyaddr(address[0])[0], "conaddress":address, "ip":address[0], "ssl":encryption, "buffer":"", "level":0}
+        self.infoByUID[uid] = {"pongtimestr":"0", "pongwaiting":False, "oper":False, "operlevel":0, "uid":uid, "channels":{}, "status":["connected"], "connection":connection, "address":socket.gethostbyaddr(address[0])[0], "conaddress":address, "ip":address[0], "ssl":encryption, "buffer":"", "level":0}
         self.connection2UID[connection] = uid
     def connectionlost(self, connection, reason="Connection reset by peer.", quithandled=False, thiserror=None) :
         if thiserror :
@@ -220,6 +220,7 @@ class sonicIRCd2() :
         nexttimestr = str(nexttime)
         if not self.timedevents.has_key(nexttimestr) :
             self.timedevents[nexttimestr] = {}
+        self.infoByUID[uid]["pongtimestr"] = nexttimestr
         self.timedevents[nexttimestr]["WAITPONG" + uid] = {"function":self.connectionlost, "args":(self.infoByUID[uid]["connection"], "Ping timeout")}
     def addEssentialsHook(self, name, function, minlevel) :
         if not self.essentials.has_key(name.upper) :
