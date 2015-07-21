@@ -221,6 +221,7 @@ class sonicIRCd2() :
         if not self.timedevents.has_key(nexttimestr) :
             self.timedevents[nexttimestr] = {}
         self.infoByUID[uid]["pongtimestr"] = nexttimestr
+        self.infoByUID[uid]["pongwaiting"] = True
         self.timedevents[nexttimestr]["WAITPONG" + uid] = {"function":self.connectionlost, "args":(self.infoByUID[uid]["connection"], "Ping timeout")}
     def addEssentialsHook(self, name, function, minlevel) :
         if not self.essentials.has_key(name.upper) :
