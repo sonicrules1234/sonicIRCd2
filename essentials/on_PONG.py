@@ -1,4 +1,4 @@
-def startup(addEssentialsHook) :
+def startup(addEssentialHook) :
     addEssentialHook("PONG", main, 0)
 
 def main(sonic, line, uid) :
@@ -12,5 +12,5 @@ def main(sonic, line, uid) :
         nexttime = sonic.count + 120
         nexttimestr = str(nexttime)
         if not sonic.timedevents.has_key(nexttimestr) :
-            self.timedevents[nexttimestr] = {}
-        self.timedevents[nexttimestr]["PINGAGAIN" + uid] = {"function":sonic.schedulePing, "args":(uid,)}
+            sonic.timedevents[nexttimestr] = {}
+        sonic.timedevents[nexttimestr]["PINGAGAIN" + uid] = {"function":sonic.schedulePing, "args":(uid,)}

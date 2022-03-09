@@ -30,7 +30,7 @@ class sonicIRCd2() :
         self.highestuid = "A00000"
         self.essentials = {}
         self.plugins = {}
-        self.timedevents = {} 
+        self.timedevents = {}
         self.network_name = network_name
         self.network_hostname = network_hostname
         self.network_website = network_website
@@ -88,8 +88,8 @@ class sonicIRCd2() :
             return newuid
         digit += 1
         return self.nextUIDCharUp(origuid[digit], digit, origuid, newuid, nextup)
-            
-                
+
+
     def uidNext(self, uid, prevnext) :
         uidlist = list(uid)
         uidlist.reverse()
@@ -168,7 +168,7 @@ class sonicIRCd2() :
             if self.essentials.has_key(info["words"][0].upper()) :
                 for essential in self.essentials[info["words"][0].upper()] :
                     essential["function"](self, line, userinfo["uid"])
-                
+
     def caseLower(self, strvar) :
         return strvar.lower().replace("{", "[").replace("}", "]").replace("|", "\\").replace("~", "^")
 
@@ -215,6 +215,7 @@ class sonicIRCd2() :
             plugin = imp.load_source(filepath.split(os.sep)[-1].replace(".py", ""), filepath)
             plugin.startup(self.addPluginHook)
     def schedulePing(self, uid) :
+        userinfo = self.infoByUID[uid]
         self.consend(userinfo["connection"], "PING :%s\r\n" % (self.network_hostname))
         nexttime = self.count + 120
         nexttimestr = str(nexttime)
@@ -290,7 +291,7 @@ def regserv() :
 
 
     while True :
-        try :        
+        try :
             conn, addr = s.accept()
             if addr[0] not in [] :
                 sonicinst.onConnect(conn, addr, False)
@@ -309,7 +310,7 @@ def sslserv(certfile, keyfile) :
     global waitingfordata
     global sonicinst
     try :
-        
+
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         #if world.pythonversion == "2.5" :
@@ -324,7 +325,7 @@ def sslserv(certfile, keyfile) :
 
 
     while True :
-        try :        
+        try :
             conn, addr = s.accept()
             if addr[0] not in [] :
                 sonicinst.onConnect(conn, addr, True)
